@@ -16,7 +16,7 @@ public class MessageFactory {
 
     public static WxMpTemplateMessage resolveMessage(Friend friend) {
         return WxMpTemplateMessage.builder()
-                .url("https://mp.weixin.qq.com") // 点击详情跳转，可以不填
+                .url("https://mp.weixin.qq.com") 
                 .toUser(friend.getUserId())
                 .templateId(StrUtil.emptyToDefault(friend.getTemplateId(), Bootstrap.TEMPLATE_ID))
                 .data(buildData(friend))
@@ -24,51 +24,45 @@ public class MessageFactory {
     }
 
     private static List<WxMpTemplateData> buildData(Friend friend) {
-        // 1. 调用预报接口获取最高/最低温和建议
+        // 1. 获取预报天气（含最高、最低温和建议）
         WeatherInfo weather = GaodeUtil.getForecastWeatherInfo(getAdcCode(friend.getProvince(), friend.getCity()));
         
-        // 获取一句温馨的古诗词或情话（保留原项目功能）
+        // 2. 获取随机古诗词
         RandomAncientPoetry.AncientPoetry ancientPoetry = RandomAncientPoetry.getNext();
 
         return List.of(
-                // 基础信息
+                // 称呼与城市
                 TemplateDataBuilder.builder().name("friendName").value("亲爱的老妈").color("#FF80AB").build(),
                 TemplateDataBuilder.builder().name("city").value(friend.getCity()).color("#4FC3F7").build(),
-                TemplateDataBuilder.builder().name("weather").value(weather.getWeather()).color("#66BB6A").build(),
                 
-                // --- 重点修改：气温区间和穿衣建议 ---
-                // 模板变量名记得在微信后台对应改好：{{tempRange.DATA}} 和 {{tips.DATA}}
+                // 天气与气温区间
+                TemplateDataBuilder.builder().name("weather").value(weather.getWeather()).color("#66BB6A").build(),
                 TemplateDataBuilder.builder().name("tempRange").value(weather.getNighttemp() + "℃ ~ " + weather.getDaytemp() + "℃").color("#FFA726").build(),
+                
+                // 重点：穿衣建议
                 TemplateDataBuilder.builder().name("tips").value(weather.getTips()).color("#9575CD").build(),
                 
-                // 生日倒计时
+                // 纪念日倒计时
                 TemplateDataBuilder.builder().name("nextBirthday").value(friend.getNextBirthdayDays()).color("#EF5350").build(),
-                
-                // 诗词寄语
-                TemplateDataBuilder.builder().name("content").value(ancientPoetry.getContent()).color("#7E57C2").build()
+
+                // --- 诗词内容（完整保留） ---
+                TemplateDataBuilder.builder().name("author").value(ancientPoetry.getAuthor()).color("#F53F3F").build(),
+                TemplateDataBuilder.builder().name("origin").value(ancientPoetry.getOrigin()).color("#F53F3F").build(),
+                TemplateDataBuilder.builder().name("content").value(ancientPoetry.getContent()).color("#F53F3F").build()
         );
     }
 
+    // 内部类保持不变
     static class TemplateDataBuilder {
         private String name;
         private String value;
         private String color;
 
-        public static TemplateDataBuilder builder() {
-            return new TemplateDataBuilder();
-        }
-        public TemplateDataBuilder name(String name) {
-            this.name = name;
-            return this;
-        }
-        public TemplateDataBuilder value(String value) {
-            this.value = value;
-            return this;
-        }
-        public TemplateDataBuilder color(String color) {
-            this.color = color;
-            return this;
-        }
+        public static TemplateDataBuilder builder() { return new TemplateDataBuilder(); }
+        public TemplateDataBuilder name(String name) { this.name = name; return this; }
+        public TemplateDataBuilder value(String value) { this.value = value; return this; }
+        public TemplateDataBuilder color(String color) { this.color = color; return this; }
+        
         public WxMpTemplateData build() {
             if (StrUtil.hasEmpty(name, value)) {
                 throw new IllegalArgumentException("参数不正确");
