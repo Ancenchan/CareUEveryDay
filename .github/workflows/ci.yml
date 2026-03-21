@@ -2,20 +2,30 @@ name: CareUEveryDay Cron CI
 
 on:
   schedule:
-    - cron: '0 23 * * *'
-  workflow_dispatch:
+    - cron: '0 23 * * *'  # 北京时间 07:00
+  workflow_dispatch:      # 允许手动触发测试
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4 # 从 v3 升级到 v4
+
       - name: Set up JDK 11
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4 # 从 v3 升级到 v4
         with:
           java-version: '11'
           distribution: 'temurin'
           cache: maven
+
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+
       - name: SendWxTemplateMsg
-        run: sudo java -jar ./target/CareUEveryDay-1.0.0.jar
+        env:
+          APP_ID: ${{ secrets.APP_ID }}
+          SECRET: ${{ secrets.SECRET }}
+          TEMPLATE_ID: ${{ secrets.TEMPLATE_ID }}
+          AMAP_KEY: ${{ secrets.AMAP_KEY }}
+        run: java -jar ./target/CareUEveryDay-1.0.0.jar
