@@ -10,61 +10,42 @@ import java.util.List;
 import static cn.ofpp.core.GaodeUtil.getAdcCode;
 
 /**
- * @author DokiYolo
- * Date 2022-08-22
+ * 消息工厂：负责组装发送给妈妈的消息内容
  */
 public class MessageFactory {
 
     public static WxMpTemplateMessage resolveMessage(Friend friend) {
         return WxMpTemplateMessage.builder()
-                .url("https://ofpp.cn") // 点击后的跳转链接 可自行修改 也可以不填
+                .url("https://mp.weixin.qq.com") // 点击详情跳转，可以不填
                 .toUser(friend.getUserId())
                 .templateId(StrUtil.emptyToDefault(friend.getTemplateId(), Bootstrap.TEMPLATE_ID))
                 .data(buildData(friend))
                 .build();
     }
 
-    /**
-     *
-     * {@code {{xxxx.DATA}}} xxxx就是一个变量名，消息中设置变量 然后传递时传递变量即可
-     * <br/>
-     * 色彩取值可以从这里挑选 https://arco.design/palette/list
-     *
-     *  <p>
-     *      你叫{{friendName.DATA}}
-     *      今年{{howOld.DATA}}
-     *      距离下一次生日{{nextBirthday.DATA}}天
-     *      具体我们的下一次纪念日{{nextMemorialDay.DATA}}天
-     *      现在在{{province.DATA}}{{city.DATA}}
-     *      当前天气{{weather.DATA}}
-     *      当前气温{{temperature.DATA}}
-     *      风力描述{{winddirection.DATA}}
-     *      风力级别{{windpower.DATA}}
-     *      空气湿度{{humidity.DATA}}
-     *      {{author.DATA}}
-     *      {{origin.DATA}}
-     *      {{content.DATA}}
-     *  </p>
-     */
     private static List<WxMpTemplateData> buildData(Friend friend) {
-        WeatherInfo weather = GaodeUtil.getNowWeatherInfo(getAdcCode(friend.getProvince(), friend.getCity()));
+        // 1. 调用预报接口获取最高/最低温和建议
+        WeatherInfo weather = GaodeUtil.getForecastWeatherInfo(getAdcCode(friend.getProvince(), friend.getCity()));
+        
+        // 获取一句温馨的古诗词或情话（保留原项目功能）
         RandomAncientPoetry.AncientPoetry ancientPoetry = RandomAncientPoetry.getNext();
+
         return List.of(
-                TemplateDataBuilder.builder().name("friendName").value(friend.getFullName()).color("#D91AD9").build(),
-                TemplateDataBuilder.builder().name("howOld").value(friend.getHowOld().toString()).color("#F77234").build(),
-                TemplateDataBuilder.builder().name("howLongLived").value(friend.getHowLongLived()).color("#437004").build(),
-                TemplateDataBuilder.builder().name("nextBirthday").value(friend.getNextBirthdayDays()).color("#771F06").build(),
-                TemplateDataBuilder.builder().name("nextMemorialDay").value(friend.getNextMemorialDay()).color("#551DB0").build(),
-                TemplateDataBuilder.builder().name("province").value(friend.getProvince()).color("#F53F3F").build(),
-                TemplateDataBuilder.builder().name("city").value(friend.getCity()).color("#FADC19").build(),
-                TemplateDataBuilder.builder().name("weather").value(weather.getWeather()).color("#00B42A").build(),
-                TemplateDataBuilder.builder().name("temperature").value(weather.getTemperature()).color("#722ED1").build(),
-                TemplateDataBuilder.builder().name("winddirection").value(weather.getWinddirection()).color("#F5319D").build(),
-                TemplateDataBuilder.builder().name("windpower").value(weather.getWindpower()).color("#3491FA").build(),
-                TemplateDataBuilder.builder().name("humidity").value(weather.getHumidity()).color("#F77234").build(),
-                TemplateDataBuilder.builder().name("author").value(ancientPoetry.getAuthor()).color("#F53F3F").build(),
-                TemplateDataBuilder.builder().name("origin").value(ancientPoetry.getOrigin()).color("#F53F3F").build(),
-                TemplateDataBuilder.builder().name("content").value(ancientPoetry.getContent()).color("#F53F3F").build()
+                // 基础信息
+                TemplateDataBuilder.builder().name("friendName").value("亲爱的老妈").color("#FF80AB").build(),
+                TemplateDataBuilder.builder().name("city").value(friend.getCity()).color("#4FC3F7").build(),
+                TemplateDataBuilder.builder().name("weather").value(weather.getWeather()).color("#66BB6A").build(),
+                
+                // --- 重点修改：气温区间和穿衣建议 ---
+                // 模板变量名记得在微信后台对应改好：{{tempRange.DATA}} 和 {{tips.DATA}}
+                TemplateDataBuilder.builder().name("tempRange").value(weather.getNighttemp() + "℃ ~ " + weather.getDaytemp() + "℃").color("#FFA726").build(),
+                TemplateDataBuilder.builder().name("tips").value(weather.getTips()).color("#9575CD").build(),
+                
+                // 生日倒计时
+                TemplateDataBuilder.builder().name("nextBirthday").value(friend.getNextBirthdayDays()).color("#EF5350").build(),
+                
+                // 诗词寄语
+                TemplateDataBuilder.builder().name("content").value(ancientPoetry.getContent()).color("#7E57C2").build()
         );
     }
 
@@ -99,5 +80,4 @@ public class MessageFactory {
             return data;
         }
     }
-
 }
