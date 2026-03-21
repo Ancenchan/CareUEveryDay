@@ -17,7 +17,6 @@ public class MessageFactory {
     }
 
     private static List<WxMpTemplateData> buildData(Friend friend) {
-        // 使用类名.方法名调用，防止导入失败
         String adcCode = GaodeUtil.getAdcCode(friend.getProvince(), friend.getCity());
         WeatherInfo weather = GaodeUtil.getForecastWeatherInfo(adcCode);
         RandomAncientPoetry.AncientPoetry ancientPoetry = RandomAncientPoetry.getNext();
@@ -35,5 +34,22 @@ public class MessageFactory {
         );
     }
 
-    // TemplateDataBuilder 保持之前给你的代码不变...
+    // --- 这个内部类一定要保留在文件里 ---
+    static class TemplateDataBuilder {
+        private String name;
+        private String value;
+        private String color;
+
+        public static TemplateDataBuilder builder() { return new TemplateDataBuilder(); }
+        public TemplateDataBuilder name(String name) { this.name = name; return this; }
+        public TemplateDataBuilder value(String value) { this.value = value; return this; }
+        public TemplateDataBuilder color(String color) { this.color = color; return this; }
+        public WxMpTemplateData build() {
+            WxMpTemplateData data = new WxMpTemplateData();
+            data.setName(name);
+            data.setValue(value);
+            data.setColor(color);
+            return data;
+        }
+    }
 }
