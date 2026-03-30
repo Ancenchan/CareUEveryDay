@@ -7,34 +7,46 @@ import cn.hutool.json.JSONUtil;
 
 public class RandomAncientPoetry {
 
-    /**
-     * 备用保底诗词（当接口全都挂掉时使用）
-     */
+    // 当所有接口都挂掉时的保底数据
     private static final AncientPoetry[] DEFAULT = new AncientPoetry[] {
-            new AncientPoetry("晏几道", "生查子", "天与短因缘，聚散常容易。"),
+            new AncientPoetry("苏轼", "江城子", "十年生死两茫茫，不思量，自难忘。"),
             new AncientPoetry("李商隐", "夜雨寄北", "君问归期未有期，巴山夜雨涨秋池。"),
-            new AncientPoetry("苏轼", "江城子", "十年生死两茫茫，不思量，自难忘。")
+            new AncientPoetry("晏几道", "生查子", "天与短因缘，聚散常容易。")
     };
 
     public static AncientPoetry getNext() {
+        // 尝试第一个最稳的接口：Hitokoto (全球 CDN 加速)
         try {
-            // 换成这个 API，响应速度极快且内容完整
-            String res = HttpUtil.get("https://api.vvhan.com/api/ian/poetry", 10000);
-            System.out.println("API 原始返回数据: " + res); // 在 Actions 日志里能看到这个
-
+            // c=i 表示只获取“诗词”分类
+            String res = HttpUtil.get("https://v1.hitokoto.cn/?c=i", 5000); 
             JSONObject json = JSONUtil.parseObj(res);
-            if (json.getBool("success", false)) {
-                JSONObject data = json.getJSONObject("data");
+            
+            String content = json.getStr("hitokoto");
+            String origin = json.getStr("from");
+            String author = json.getStr("from_who");
+            
+            // 简单清洗：如果作者为空，填个佚名
+            author = (author == null || author.isEmpty()) ? "佚名" : author;
+
+            System.out.println("成功通过 Hitokoto 获取诗词: " + content);
+            return new AncientPoetry(author, origin, content);
+            
+        } catch (Exception e1) {
+            System.err.println("Hitokoto 接口解析失败，尝试备用接口...");
+            
+            // 尝试第二个接口：如果你之前那个接口偶尔能通，可以在这儿加个重试逻辑
+            try {
+                String res = HttpUtil.get("https://v1.jinrishici.com/all.json", 5000);
+                JSONObject json = JSONUtil.parseObj(res);
                 return new AncientPoetry(
-                    data.getStr("author"),
-                    data.getStr("origin"),
-                    data.getStr("content")
+                    json.getStr("author"), 
+                    json.getStr("origin"), 
+                    json.getStr("content")
                 );
+            } catch (Exception e2) {
+                System.err.println("备用接口也挂了，启用本地保底数据。");
+                return DEFAULT[RandomUtil.randomInt(0, DEFAULT.length)];
             }
-            throw new RuntimeException("API 返回状态异常");
-        } catch (Exception e) {
-            System.err.println("诗词接口请求失败，使用保底数据: " + e.getMessage());
-            return DEFAULT[RandomUtil.randomInt(0, DEFAULT.length)];
         }
     }
 
@@ -44,19 +56,14 @@ public class RandomAncientPoetry {
         private String content;
 
         public AncientPoetry() {}
-
         public AncientPoetry(String author, String origin, String content) {
             this.author = author;
             this.origin = origin;
             this.content = content;
         }
 
-        // Getters and Setters
         public String getAuthor() { return author; }
-        public void setAuthor(String author) { this.author = author; }
         public String getOrigin() { return origin; }
-        public void setOrigin(String origin) { this.origin = origin; }
         public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
     }
 }
