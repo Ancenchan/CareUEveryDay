@@ -28,9 +28,10 @@ public class MessageFactory {
         data.add(new WxMpTemplateData("nextBirthday", friend.getNextBirthdayDays(), "#EF5350"));
 
         // 诗词字段
-        data.add(new WxMpTemplateData("content", poetry.getContent(), "#7E57C2"));
-        data.add(new WxMpTemplateData("author", poetry.getAuthor(), "#9E9E9E"));
-        data.add(new WxMpTemplateData("origin", "《" + poetry.getOrigin() + "》", "#9E9E9E"));
+// 在 MessageFactory.java 的诗词字段部分，改掉第一个参数
+data.add(new WxMpTemplateData("poemContent", poetry.getContent(), "#7E57C2")); // 这里改名了
+data.add(new WxMpTemplateData("author", poetry.getAuthor(), "#9E9E9E"));
+data.add(new WxMpTemplateData("origin", "《" + poetry.getOrigin() + "》", "#9E9E9E"));
         
         return WxMpTemplateMessage.builder()
                 .toUser(friend.getUserId())
